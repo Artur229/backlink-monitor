@@ -30,6 +30,9 @@ model Link {
   placedAt        DateTime?
   /// Confirmed status (what the dashboard shows and alerts compare against)
   status          LinkStatus @default(pending)
+  /// Last conclusive (not blocked/error) confirmed status — what alerts compare against,
+  /// so ok → error → ok never alerts. null = never checked conclusively.
+  lastConclusiveStatus LinkStatus?
   /// Consecutive lost/page_gone results awaiting confirmation (alert at 2)
   failStreak      Int        @default(0)
   lastCheckedAt   DateTime?

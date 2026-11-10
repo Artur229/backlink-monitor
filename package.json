@@ -12,7 +12,10 @@
     "test": "vitest run",
     "import": "tsx src/cli/import.ts",
     "test:watch": "vitest",
-    "check": "tsx src/cli/check.ts"
+    "check": "tsx src/cli/check.ts",
+    "worker": "tsx src/worker/index.ts",
+    "run-now": "tsx src/cli/run-now.ts",
+    "queue:status": "tsx src/cli/queue-status.ts"
   },
   "keywords": [],
   "author": "",
@@ -28,9 +31,11 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
+    "bullmq": "^6.7.3",
     "cheerio": "^1.2.0",
     "csv-parse": "^7.0.3",
     "dotenv": "^18.0.10",
+    "ioredis": "^6.0.0",
     "undici": "^8.12.4",
     "zod": "^4.6.7"
   },

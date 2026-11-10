@@ -85,6 +85,15 @@ Dashboard (Next.js, no auth or one password from env):
 6. **Deploy: Railway only** (web + worker + Postgres + Redis in one project). Free Render has no background workers.
 7. **Needed from the owner:** Telegram bot token + chat_id, a test page on Vercel (for "remove link → alert arrives"), optional `proxies.txt`.
 
+## Implementation notes (steps 1–5)
+
+- **Status logic** lives in `src/lib/monitor/transition.ts` (pure, tested). `Link.status` is what is shown; `Link.lastConclusiveStatus` is the last non-blocked/error confirmed status and is what alerts compare against (so ok → error → ok never alerts). First unconfirmed `lost`/`page_gone` keeps the old status, sets `failStreak=1` and schedules a `confirm` job after `CONFIRM_DELAY_MS`. Alert kinds: `problem`, `low` (anchor_changed), `recovered` (→ ok). `pending → ok` never alerts.
+- **Queues** (`src/lib/queue/queues.ts`): `checks` (jobs `{linkId, reason: daily|manual|confirm}`), `alerts` (`{type: status|system}`, 10 attempts, exp. backoff), `maintenance` (`daily-run` via `upsertJobScheduler`, cron `CHECK_CRON` in `TZ`). Job ids: daily `${linkId}_${YYYY-MM-DD}`, confirm `${parentJobId}_confirm`, alert `alert_${checkJobId}` (enqueued before the DB write → crash-safe dedup), manual uses BullMQ `deduplication`.
+- **Domain limiter**: `bm:domain:<host-without-www>` SET NX PX; busy → `moveToDelayed(now + pttl + jitter)` + `DelayedError`. All proxies down → job delayed until a proxy cools down, queue paused, one `system` alert, auto-resume.
+- **Crash safety verified**: kill -9 mid-run → delayed/waiting jobs stay in Redis; an active job is recovered as stalled (~60 s) and re-run; no duplicate Check rows.
+- **Scripts**: `npm run worker`, `npm run run-now` (enqueue today's checks), `npm run queue:status`, `npm run check -- <donor> <target> [anchor]`.
+- **Tests**: `npm test` = unit + integration. Integration uses DB `backlink_test` and Redis DB 15 (see `vitest.config.ts`), skipped automatically if Docker is down.
+
 ## Failure modes (goes into README as is)
 
 | What breaks | Without protection | How handled |
@@ -107,7 +116,7 @@ Dashboard (Next.js, no auth or one password from env):
 - [x] 2. CSV import with Zod validation
 - [x] 3. `checkLink()`: fetch + cheerio + URL normalization + status, unit tests on HTML fixtures
 - [x] 4. Retries, proxy pool, captcha detection
-- [ ] 5. BullMQ: check queue, per-domain limit, daily schedule
+- [x] 5. BullMQ: check queue, per-domain limit, daily schedule
 - [ ] 6. Telegram: alerts on status change + digest
 - [ ] 7. Dashboard: stats, table, link card
 - [ ] 8. README + demo GIF + Railway deploy
