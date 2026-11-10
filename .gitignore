@@ -1,8 +1,10 @@
-node_modules/
+*.tsbuildinfo
+.DS_Store
 .env
+.next/
+coverage/
+dist/
+next-env.d.ts
+node_modules/
 proxies.txt
 src/generated/
-.next/
-dist/
-coverage/
-.DS_Store
