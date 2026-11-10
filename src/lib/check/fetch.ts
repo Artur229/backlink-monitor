@@ -10,7 +10,7 @@ export interface FetchOptions {
   dispatcher?: Dispatcher;
 }
 
-export type NetworkErrorKind = "timeout" | "dns" | "tls" | "network" | "too_many_redirects" | "not_html";
+export type NetworkErrorKind = "timeout" | "dns" | "tls" | "network" | "proxy" | "too_many_redirects" | "not_html";
 
 export type FetchResult =
   | ({ ok: true; durationMs: number; redirects: string[] } & PageResponse)
@@ -137,6 +137,9 @@ export function classifyError(err: unknown, signal?: AbortSignal): { kind: Netwo
 
   if (signal?.aborted || chain.some((e) => e.name === "TimeoutError") || codes.some((c) => TIMEOUT_CODES.has(c))) {
     return { kind: "timeout", message: "timeout" };
+  }
+  if (codes.includes("UND_ERR_PRX_CONN") || chain.some((e) => /proxy/i.test(e.message ?? ""))) {
+    return { kind: "proxy", message };
   }
   if (codes.some((c) => DNS_CODES.has(c))) return { kind: "dns", message };
   if (codes.some((c) => /CERT|TLS|SSL|SELF_SIGNED|UNABLE_TO_VERIFY/.test(c))) return { kind: "tls", message };

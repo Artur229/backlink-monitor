@@ -58,6 +58,8 @@ All numbers in `.env` (see `.env.example`): CONCURRENCY 10, PER_DOMAIN_DELAY 5s,
 - **Proxies:** each retry goes through a different proxy. 3 consecutive failures → proxy disabled for 10 min (circuit breaker). All proxies dead → pause queue + one system Telegram alert. No proxy list → direct connection.
 - **Headers:** realistic User-Agent from a small pool + Accept-Language.
 - **Captcha:** detect, don't solve. 403/503 + HTML markers (`cf-chl`, `challenge-platform`, `g-recaptcha`, `hcaptcha`, "Just a moment") → `blocked`. Post-MVP: Playwright fallback for JS-rendered links.
+- **Captcha heuristic (implemented):** on 401/403/429/503 any marker is just detail (already `blocked`). On a 200 without the link, full-page challenge markers (Cloudflare `cf-chl` / `challenge-platform` / "Just a moment" / `cf-mitigated` header, Incapsula, DDoS-Guard) → `blocked`; widget markers (reCAPTCHA, hCaptcha, Turnstile) → `blocked` only on a thin page (< 2000 chars of text), because contact forms use them too.
+- **Retry policy (implemented):** retried: timeout, network, proxy errors, 401/403/429/5xx, 407 (next proxy). Not retried: 404/410, DNS, TLS, non-HTML, too many redirects, `lost`. Retry-After > 60s → give up for this run. Proxy failure = network-level only (a donor's 403 doesn't count against the proxy). All proxies down → no direct fallback, result has `allProxiesDown` so the worker pauses the queue. Proxy stored as `host:port`, never with credentials.
 
 ## Notifications & dashboard
 
@@ -104,7 +106,7 @@ Dashboard (Next.js, no auth or one password from env):
 - [x] 1. Repo, CLAUDE.md, docker-compose (Postgres + Redis), Prisma schema
 - [x] 2. CSV import with Zod validation
 - [x] 3. `checkLink()`: fetch + cheerio + URL normalization + status, unit tests on HTML fixtures
-- [ ] 4. Retries, proxy pool, captcha detection
+- [x] 4. Retries, proxy pool, captcha detection
 - [ ] 5. BullMQ: check queue, per-domain limit, daily schedule
 - [ ] 6. Telegram: alerts on status change + digest
 - [ ] 7. Dashboard: stats, table, link card

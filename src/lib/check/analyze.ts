@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import type { Element } from "domhandler";
+import { detectChallenge } from "./captcha";
 import { normalizeText, normalizeUrl } from "./normalize";
 import { pickStatus, type CheckStatus } from "./status";
 
@@ -38,14 +39,20 @@ export function analyzePage(page: PageResponse, link: ExpectedLink): Analysis {
   const { httpCode } = page;
 
   if (GONE_CODES.has(httpCode)) return { status: "page_gone", issues: [`HTTP ${httpCode}`] };
-  if (BLOCKED_CODES.has(httpCode)) return { status: "blocked", issues: [`HTTP ${httpCode}`] };
+
+  const $ = cheerio.load(page.html);
+  const visibleText = () => $("body").text().replace(/\s+/g, " ").trim().length;
+
+  if (BLOCKED_CODES.has(httpCode)) {
+    const ch = detectChallenge(page.html, page.headers, visibleText());
+    return { status: "blocked", issues: [`HTTP ${httpCode}`, ...(ch ? [`captcha: ${ch.marker}`] : [])] };
+  }
   if (httpCode < 200 || httpCode >= 300) return { status: "error", issues: [`HTTP ${httpCode}`] };
 
   if (normalizeUrl(page.finalUrl) !== normalizeUrl(link.donorUrl)) {
     issues.push(`redirected → ${page.finalUrl}`);
   }
 
-  const $ = cheerio.load(page.html);
   const baseHref = $("base[href]").first().attr("href");
   const base = resolve(baseHref, page.finalUrl) ?? page.finalUrl;
 
@@ -87,6 +94,9 @@ export function analyzePage(page: PageResponse, link: ExpectedLink): Analysis {
     .map((a) => ({ ...a, anchorOk: expectedAnchor === null || a.text === expectedAnchor }));
 
   if (candidates.length === 0) {
+    // A 200 that is really a challenge page: we can't see the content, so it's not "lost".
+    const ch = detectChallenge(page.html, page.headers, visibleText());
+    if (ch?.fullPage) return { status: "blocked", issues: [`HTTP ${httpCode}`, `captcha: ${ch.marker}`] };
     if (page.truncated) {
       return { status: "error", issues: [...issues, "page larger than MAX_BODY; link not found in the downloaded part"] };
     }

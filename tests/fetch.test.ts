@@ -113,18 +113,19 @@ describe("fetchPage", () => {
 });
 
 describe("checkLink end-to-end against local server", () => {
+  const deps = { fetchOptions: OPTS, pool: null, sleep: async () => {} };
   const link = (path: string) => ({ donorUrl: `${base}${path}`, targetUrl: "https://my-site.com", anchor: "Best Casino Bonuses" });
 
   it("ok", async () => {
-    expect(await checkLink(link("/ok"), { fetchOptions: OPTS })).toMatchObject({ status: "ok", httpCode: 200 });
+    expect(await checkLink(link("/ok"), deps)).toMatchObject({ status: "ok", httpCode: 200 });
   });
 
   it("page_gone on 410", async () => {
-    expect(await checkLink(link("/gone"), { fetchOptions: OPTS })).toMatchObject({ status: "page_gone", httpCode: 410 });
+    expect(await checkLink(link("/gone"), deps)).toMatchObject({ status: "page_gone", httpCode: 410 });
   });
 
   it("network failures become error, never lost", async () => {
-    const r = await checkLink(link("/slow"), { fetchOptions: { ...OPTS, timeoutMs: 300 } });
+    const r = await checkLink(link("/slow"), { ...deps, retries: 0, fetchOptions: { ...OPTS, timeoutMs: 300 } });
     expect(r).toMatchObject({ status: "error", issues: ["timeout: timeout"] });
   });
 });
