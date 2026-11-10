@@ -102,7 +102,7 @@ Dashboard (Next.js, no auth or one password from env):
 ## Plan (one commit per step)
 
 - [x] 1. Repo, CLAUDE.md, docker-compose (Postgres + Redis), Prisma schema
-- [ ] 2. CSV import with Zod validation
+- [x] 2. CSV import with Zod validation
 - [ ] 3. `checkLink()`: fetch + cheerio + URL normalization + status, unit tests on HTML fixtures
 - [ ] 4. Retries, proxy pool, captcha detection
 - [ ] 5. BullMQ: check queue, per-domain limit, daily schedule

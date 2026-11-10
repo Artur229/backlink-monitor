@@ -1,0 +1,4 @@
+donor_url,target_url,anchor,outreacher,price_usd,placed_at
+https://blog-example.com/best-tips,https://my-site.com/,best casino bonuses,Olha,150,2026-10-01
+https://news-example.org/review,https://my-site.com/reviews,mysite,Ivan,90,2026-10-12
+not-a-url,https://my-site.com/,broken row,Ivan,50,2026-10-15
