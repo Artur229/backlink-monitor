@@ -91,6 +91,7 @@ Dashboard (Next.js, no auth or one password from env):
 - **Queues** (`src/lib/queue/queues.ts`): `checks` (jobs `{linkId, reason: daily|manual|confirm}`), `alerts` (`{type: status|system}`, 10 attempts, exp. backoff), `maintenance` (`daily-run` via `upsertJobScheduler`, cron `CHECK_CRON` in `TZ`). Job ids: daily `${linkId}_${YYYY-MM-DD}`, confirm `${parentJobId}_confirm`, alert `alert_${checkJobId}` (enqueued before the DB write → crash-safe dedup), manual uses BullMQ `deduplication`.
 - **Domain limiter**: `bm:domain:<host-without-www>` SET NX PX; busy → `moveToDelayed(now + pttl + jitter)` + `DelayedError`. All proxies down → job delayed until a proxy cools down, queue paused, one `system` alert, auto-resume.
 - **Crash safety verified**: kill -9 mid-run → delayed/waiting jobs stay in Redis; an active job is recovered as stalled (~60 s) and re-run; no duplicate Check rows.
+- **Telegram** (`src/worker/bot.ts`, `alertProcessor.ts`, `src/lib/telegram/format.ts`): alerts queue consumer rate-limited to 1 msg / 1.1 s; 429/5xx/network → BullMQ retry, other 4xx → UnrecoverableError. No token → alerts wait in Redis. Bot answers only `TELEGRAM_CHAT_ID`; other chats get their chat id. `/status`, `/check <donor url>` (normalized lookup, waits ≤90 s for the result). Digest = `maintenance` job `digest` (DIGEST_CRON in TZ) → text enqueued as `digest_${date}` on the alerts queue. $ at risk = lost + page_gone + nofollow + noindex (anchor_changed still passes value).
 - **Scripts**: `npm run worker`, `npm run run-now` (enqueue today's checks), `npm run queue:status`, `npm run check -- <donor> <target> [anchor]`.
 - **Tests**: `npm test` = unit + integration. Integration uses DB `backlink_test` and Redis DB 15 (see `vitest.config.ts`), skipped automatically if Docker is down.
 
@@ -117,7 +118,7 @@ Dashboard (Next.js, no auth or one password from env):
 - [x] 3. `checkLink()`: fetch + cheerio + URL normalization + status, unit tests on HTML fixtures
 - [x] 4. Retries, proxy pool, captcha detection
 - [x] 5. BullMQ: check queue, per-domain limit, daily schedule
-- [ ] 6. Telegram: alerts on status change + digest
+- [x] 6. Telegram: alerts on status change + digest
 - [ ] 7. Dashboard: stats, table, link card
 - [ ] 8. README + demo GIF + Railway deploy
 

@@ -1,8 +1,10 @@
 import { Worker } from "bullmq";
 import { config } from "../lib/config";
 import { getProxyPool, setOnAllProxiesDown } from "../lib/proxy";
-import { getQueues, CHECKS, MAINTENANCE } from "../lib/queue/queues";
+import { getQueues, ALERTS, CHECKS, MAINTENANCE } from "../lib/queue/queues";
 import { createRedis, sharedRedis } from "../lib/queue/redis";
+import { makeAlertProcessor } from "./alertProcessor";
+import { createBot } from "./bot";
 import { makeCheckProcessor } from "./checkProcessor";
 import { processMaintenance } from "./maintenance";
 
@@ -51,10 +53,34 @@ async function main() {
   maintWorker.on("completed", (job, r) => log(`✓ maintenance ${job.name}`, JSON.stringify(r)));
   maintWorker.on("failed", (job, err) => log(`✖ maintenance ${job?.name}`, err.message));
 
+  // Telegram: alerts consumer + bot commands + daily digest. Without a token the alerts
+  // just wait in Redis (nothing is lost) and are sent once the bot is configured.
+  let telegram: ReturnType<typeof createBot> | null = null;
+  let alertWorker: Worker | null = null;
+  if (config.TELEGRAM_BOT_TOKEN && config.TELEGRAM_CHAT_ID) {
+    telegram = createBot(config.TELEGRAM_BOT_TOKEN, config.TELEGRAM_CHAT_ID);
+    alertWorker = new Worker(ALERTS, makeAlertProcessor(telegram.send), {
+      connection: createRedis(),
+      concurrency: 1,
+      limiter: { max: 1, duration: 1100 }, // Telegram: ~1 message/sec per chat
+    });
+    alertWorker.on("completed", (job) => log(`✉ sent ${job.id}`));
+    alertWorker.on("failed", (job, err) => log(`✉✖ ${job?.id} (attempt ${job?.attemptsMade})`, err.message));
+    await maintenance.upsertJobScheduler("daily-digest", { pattern: config.DIGEST_CRON, tz: config.TZ }, { name: "digest" });
+    log(`digest scheduled: "${config.DIGEST_CRON}" ${config.TZ}`);
+    void telegram.bot.start({
+      drop_pending_updates: true,
+      onStart: (me) => log(`bot @${me.username} polling`),
+    });
+  } else {
+    log("⚠ TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not set — alerts are kept in the queue, not sent");
+  }
+
   const shutdown = async (signal: string) => {
     log(`${signal}: finishing active jobs…`);
     clearTimeout(resumeTimer);
-    await Promise.all([checkWorker.close(), maintWorker.close()]);
+    await telegram?.stop();
+    await Promise.all([checkWorker.close(), maintWorker.close(), alertWorker?.close()]);
     await Promise.all([checks.close(), alerts.close(), maintenance.close()]);
     process.exit(0);
   };

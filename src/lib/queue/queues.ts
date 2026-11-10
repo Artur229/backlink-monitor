@@ -15,7 +15,8 @@ export interface CheckJobData {
 
 export type AlertJobData =
   | { type: "status"; linkId: string; checkId?: string; alert: Alert }
-  | { type: "system"; message: string };
+  | { type: "system"; message: string }
+  | { type: "digest"; text: string };
 
 const DAY_S = 86_400;
 

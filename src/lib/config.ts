@@ -23,6 +23,8 @@ const schema = z.object({
   DIGEST_CRON: z.string().default("0 10 * * *"),
   CONFIRM_DELAY_MS: int(3_600_000),
   DASHBOARD_URL: z.string().default("http://localhost:3000"),
+  TELEGRAM_BOT_TOKEN: z.string().default(""),
+  TELEGRAM_CHAT_ID: z.string().default(""),
 });
 
 export type Config = z.output<typeof schema>;
