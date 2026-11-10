@@ -133,7 +133,7 @@ Every crawler number (concurrency, delays, timeouts, retries, proxy breaker) is 
 
 Live demo: https://backlink-monitor-production.up.railway.app
 
-Railway: web + worker + Postgres + Redis in one project, one `railway.json` for both app services (the role comes from the service name). Step-by-step guide: [docs/deploy-railway.md](docs/deploy-railway.md).
+Railway: web + worker + Postgres + Redis in one project, described as code in `.railway/railway.ts` (Railway IaC; variables stay unmanaged, so secrets never touch the repo). Step-by-step guide: [docs/deploy-railway.md](docs/deploy-railway.md).
 
 ## How I built it with Claude Code
 

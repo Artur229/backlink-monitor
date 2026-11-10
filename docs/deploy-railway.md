@@ -1,12 +1,14 @@
 # Deploy to Railway
 
 One Railway project, four services: **web** (dashboard), **worker** (queues + Telegram bot), **Postgres**, **Redis**.
-Web and worker are the same repo with the same [`railway.json`](../railway.json). The role comes from the service name: a service with "worker" in its name runs the worker, anything else runs the dashboard. Set `SERVICE_ROLE=web|worker` to override.
+The whole project is described as code in [`.railway/railway.ts`](../.railway/railway.ts) (Railway Infrastructure as Code): both app services come from the same repo with their own build and start commands, plus Postgres and Redis. Variables are **unmanaged** by IaC: they live in Railway, so secrets like the bot token are never in the repo and `railway config apply` never touches them.
+
+Change commands in `.railway/railway.ts`, preview with `npx @railway/cli config plan`, apply with `npx @railway/cli config apply`.
 
 | | web | worker |
 |---|---|---|
-| Build | `next build` | `prisma generate` |
-| Start | `prisma migrate deploy && next start` | `tsx src/worker/index.ts` |
+| Build | `npm run build` | `npx prisma generate` |
+| Start | `npx prisma migrate deploy && npm run start` | `npm run worker` |
 | Healthcheck `/api/health` | DB ping | Redis ping (small HTTP server on `$PORT`) |
 | Public domain | yes | not needed |
 | Replicas | 1+ | **exactly 1** (Telegram long polling allows one consumer) |
@@ -33,6 +35,10 @@ DASHBOARD_URL=https://${{web.RAILWAY_PUBLIC_DOMAIN}}
 `web` only: `DASHBOARD_PASSWORD` (optional). `worker` only: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, and optionally `CHECK_CRON`, `DIGEST_CRON` and crawler settings from [.env.example](../.env.example).
 
 Public URL for the dashboard: `npx @railway/cli domain --service web`.
+
+## Commands for a new project
+
+For a fresh Railway project, create the services (above) and then run `npx @railway/cli config apply` to set their build/start/healthcheck from `.railway/railway.ts`. The service names must match: `backlink-monitor` (web) and `worker`.
 
 ## Or in the Railway UI
 
