@@ -6,8 +6,7 @@ Web and worker are the same repo with the same [`railway.json`](../railway.json)
 | | web | worker |
 |---|---|---|
 | Build | `next build` | `prisma generate` |
-| Pre-deploy | `prisma migrate deploy` | same (idempotent) |
-| Start | `next start` | `tsx src/worker/index.ts` |
+| Start | `prisma migrate deploy && next start` | `tsx src/worker/index.ts` |
 | Healthcheck `/api/health` | DB ping | Redis ping (small HTTP server on `$PORT`) |
 | Public domain | yes | not needed |
 | Replicas | 1+ | **exactly 1** (Telegram long polling allows one consumer) |
@@ -44,7 +43,8 @@ Public URL for the dashboard: `npx @railway/cli domain --service web`.
 
 ## First run
 
-1. Both services redeploy after the variables change. Web's pre-deploy runs the migrations.
+1. Both services redeploy after the variables change. Web applies the migrations on start.
+   Note: `railway redeploy` without `--from-source` re-runs the *old* build; use `--from-source` to deploy the latest commit.
 2. `https://<web-domain>/api/health` → `{"ok":true}`.
 3. Import links on **Імпорт CSV**, then run the first check without waiting for the cron: worker service → shell → `npm run run-now`, or press **Перевірити зараз** on a link.
 4. Send `/status` to the bot.

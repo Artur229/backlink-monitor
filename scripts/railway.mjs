@@ -8,7 +8,9 @@ const role = (process.env.SERVICE_ROLE || (/worker/i.test(process.env.RAILWAY_SE
 
 const commands = {
   build: { web: "next build", worker: "prisma generate" },
-  start: { web: "next start", worker: "tsx src/worker/index.ts" },
+  // Migrations run right before the web server starts: idempotent, and they don't depend on
+  // the platform's pre-deploy step (which Railway skipped for this project).
+  start: { web: "prisma migrate deploy && next start", worker: "tsx src/worker/index.ts" },
 };
 
 const cmd = commands[step]?.[role];
