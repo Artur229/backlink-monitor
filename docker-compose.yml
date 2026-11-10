@@ -1,0 +1,28 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: backlink
+      POSTGRES_PASSWORD: backlink
+      POSTGRES_DB: backlink
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U backlink"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    # AOF: queued jobs survive a Redis restart (failure mode "worker crashed mid-run")
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "6380:6379"
+    volumes:
+      - redisdata:/data
+
+volumes:
+  pgdata:
+  redisdata:

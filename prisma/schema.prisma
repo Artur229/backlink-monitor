@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Priority (top wins): blocked > error > page_gone > lost > nofollow > noindex > anchor_changed > ok
+enum LinkStatus {
+  pending
+  blocked
+  error
+  page_gone
+  lost
+  nofollow
+  noindex
+  anchor_changed
+  ok
+}
+
+model Link {
+  id              String     @id @default(cuid())
+  donorUrl        String
+  targetUrl       String
+  anchor          String?
+  outreacher      String?
+  priceUsd        Int?
+  placedAt        DateTime?
+  /// Confirmed status (what the dashboard shows and alerts compare against)
+  status          LinkStatus @default(pending)
+  /// Consecutive lost/page_gone results awaiting confirmation (alert at 2)
+  failStreak      Int        @default(0)
+  lastCheckedAt   DateTime?
+  statusChangedAt DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  checks          Check[]
+
+  @@unique([donorUrl, targetUrl])
+  @@index([status])
+  @@index([outreacher])
+}
+
+model Check {
+  id         String     @id @default(cuid())
+  link       Link       @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  linkId     String
+  checkedAt  DateTime   @default(now())
+  httpCode   Int?
+  finalUrl   String?
+  status     LinkStatus
+  /// e.g. ["rel=nofollow", "anchor: 'x' != 'y'"]
+  issues     Json
+  proxy      String?
+  durationMs Int?
+
+  @@index([linkId, checkedAt])
+}

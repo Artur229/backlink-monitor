@@ -1,0 +1,37 @@
+{
+  "name": "backlink-monitor",
+  "version": "1.0.0",
+  "description": "Daily monitor for purchased backlinks with Telegram alerts",
+  "scripts": {
+    "db:up": "docker compose up -d",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "typecheck": "tsc --noEmit",
+    "postinstall": "prisma generate",
+    "test": "echo \"no tests yet\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "prisma": "^7.10.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "dotenv": "^18.0.10"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "fsevents@2.3.3": true
+  },
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  }
+}
