@@ -15,7 +15,10 @@
     "check": "tsx src/cli/check.ts",
     "worker": "tsx src/worker/index.ts",
     "run-now": "tsx src/cli/run-now.ts",
-    "queue:status": "tsx src/cli/queue-status.ts"
+    "queue:status": "tsx src/cli/queue-status.ts",
+    "tg:test": "tsx src/cli/tg-test.ts",
+    "check-now": "tsx src/cli/check-now.ts",
+    "digest-now": "tsx src/cli/digest-now.ts"
   },
   "keywords": [],
   "author": "",
