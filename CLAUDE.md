@@ -122,7 +122,7 @@ Dashboard (Next.js, no auth or one password from env):
 - [x] 5. BullMQ: check queue, per-domain limit, daily schedule
 - [x] 6. Telegram: alerts on status change + digest
 - [x] 7. Dashboard: stats, table, link card
-- [ ] 8. README + demo GIF + Railway deploy — README, `docs/demo.gif`, `railway.json`, `docs/deploy-railway.md`, `test-donor/` done; actual deploy pending (needs owner's Railway/GitHub)
+- [x] 8. README + demo GIF + Railway deploy — live at https://backlink-monitor-production.up.railway.app (Railway project `protective-adaptation`: services `backlink-monitor` = web, `worker`, Postgres, Redis). TODO: migrate `railway.json` (Config as Code, deprecated, works until 2026-12-01) to Railway IaC `.railway/railway.ts`.
 
 **Done when:** CSV with 10 links → all 10 checked with a status · removing the link on the Vercel test page → Telegram alert · captcha page shows `blocked`, not `lost` · worker crash mid-run loses no checks · `npm test` green, dashboard on a public URL.
 
