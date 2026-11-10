@@ -131,7 +131,7 @@ Every crawler number (concurrency, delays, timeouts, retries, proxy breaker) is 
 
 ## Deploy
 
-Railway: web + worker + Postgres + Redis in one project. Step-by-step guide: [docs/deploy-railway.md](docs/deploy-railway.md).
+Railway: web + worker + Postgres + Redis in one project, one `railway.json` for both app services (the role comes from the service name). Step-by-step guide: [docs/deploy-railway.md](docs/deploy-railway.md).
 
 ## How I built it with Claude Code
 

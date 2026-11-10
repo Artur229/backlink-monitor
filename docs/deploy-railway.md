@@ -1,32 +1,28 @@
 # Deploy to Railway
 
 One Railway project, four services: **web** (dashboard), **worker** (queues + Telegram bot), **Postgres**, **Redis**.
-Web and worker are built from the same GitHub repo; each one points at its own config file in `railway/`.
-
-## 1. Project and databases
-
-1. [railway.com](https://railway.com) → **New Project** → **Deploy from GitHub repo** → pick this repo. This creates the first service; rename it to `web`.
-2. **+ New → Database → PostgreSQL**.
-3. **+ New → Database → Redis**.
-4. **+ New → GitHub Repo** → the same repo again; rename it to `worker`.
-
-## 2. Service settings
+Web and worker are the same repo with the same [`railway.json`](../railway.json). The role comes from the service name: a service with "worker" in its name runs the worker, anything else runs the dashboard. Set `SERVICE_ROLE=web|worker` to override.
 
 | | web | worker |
 |---|---|---|
-| Settings → Config-as-code → **Railway Config File** | `/railway/web.json` | `/railway/worker.json` |
-| Settings → Networking | **Generate Domain** | — (no public port) |
-| Replicas | 1+ | **exactly 1** (Telegram long polling allows a single consumer) |
-| Serverless / app sleeping | can be on | **off** (the worker must keep running) |
+| Build | `next build` | `prisma generate` |
+| Pre-deploy | `prisma migrate deploy` | same (idempotent) |
+| Start | `next start` | `tsx src/worker/index.ts` |
+| Healthcheck `/api/health` | DB ping | Redis ping (small HTTP server on `$PORT`) |
+| Public domain | yes | not needed |
+| Replicas | 1+ | **exactly 1** (Telegram long polling allows one consumer) |
 
-The config files set the commands:
+## With the Railway CLI
 
-- **web**: build `npm run build`, pre-deploy `npx prisma migrate deploy`, start `npm run start`, healthcheck `/api/health`.
-- **worker**: start `npm run worker`, restart policy `ALWAYS`.
+```bash
+npx @railway/cli login
+npx @railway/cli link                         # pick the project
+npx @railway/cli add --database postgres
+npx @railway/cli add --database redis
+npx @railway/cli add --service worker --repo <owner>/backlink-monitor
+```
 
-## 3. Variables
-
-Set these on **both** services (Railway → service → Variables → *Raw editor*). The `${{…}}` references are resolved by Railway.
+Variables on **both** `web` and `worker` (`npx @railway/cli variables --service <name> --set "KEY=VALUE" ...`):
 
 ```env
 DATABASE_URL=${{Postgres.DATABASE_URL}}
@@ -35,33 +31,22 @@ TZ=Europe/Kyiv
 DASHBOARD_URL=https://${{web.RAILWAY_PUBLIC_DOMAIN}}
 ```
 
-**web** only:
+`web` only: `DASHBOARD_PASSWORD` (optional). `worker` only: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, and optionally `CHECK_CRON`, `DIGEST_CRON` and crawler settings from [.env.example](../.env.example).
 
-```env
-DASHBOARD_PASSWORD=choose-a-password   # optional; empty = open dashboard
-```
+Public URL for the dashboard: `npx @railway/cli domain --service web`.
 
-**worker** only:
+## Or in the Railway UI
 
-```env
-TELEGRAM_BOT_TOKEN=...
-TELEGRAM_CHAT_ID=...
-CHECK_CRON=0 3 * * *
-DIGEST_CRON=0 10 * * *
-# Crawler tuning (defaults shown in .env.example): CONCURRENCY, PER_DOMAIN_DELAY_MS, TIMEOUT_MS, RETRIES, ...
-```
+1. **New Project → Deploy from GitHub repo** → this repo. Rename the service to `web`.
+2. **+ New → Database → PostgreSQL** and **+ New → Database → Redis**.
+3. **+ New → GitHub Repo** → the same repo, name it `worker`.
+4. Variables as above (Variables → Raw editor). `web` → Settings → Networking → **Generate Domain**.
 
-Proxies: the worker reads `PROXY_LIST` (default `proxies.txt`). `proxies.txt` is gitignored, so on Railway either leave it out (direct connection) or mount a volume with the file and point `PROXY_LIST` at it.
+## First run
 
-## 4. First run
+1. Both services redeploy after the variables change. Web's pre-deploy runs the migrations.
+2. `https://<web-domain>/api/health` → `{"ok":true}`.
+3. Import links on **Імпорт CSV**, then run the first check without waiting for the cron: worker service → shell → `npm run run-now`, or press **Перевірити зараз** on a link.
+4. Send `/status` to the bot.
 
-1. Deploy both services. The web pre-deploy step runs the migrations.
-2. Open the web domain → **Імпорт CSV** → upload your links (or run `npm run import links.csv` locally with `DATABASE_URL` pointing at Railway's public Postgres URL).
-3. Trigger the first check without waiting for the cron: on the worker service, open the shell and run `npm run run-now`. Or press **Перевірити зараз** on individual links.
-4. In Telegram, send `/status` to the bot.
-
-## Checks
-
-- `https://<web-domain>/api/health` → `{"ok":true}`
-- Worker logs show `worker starting`, `daily checks scheduled`, `digest scheduled`, `bot @… polling`.
-- `npm run tg:test` (locally, with the same token/chat id) sends a test message.
+Proxies: `proxies.txt` is gitignored. On Railway, either run without it (direct connection) or mount a volume with the file and set `PROXY_LIST` to its path.

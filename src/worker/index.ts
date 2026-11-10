@@ -1,3 +1,4 @@
+import { createServer } from "node:http";
 import { Worker } from "bullmq";
 import { config } from "../lib/config";
 import { getProxyPool, setOnAllProxiesDown } from "../lib/proxy";
@@ -14,6 +15,14 @@ async function main() {
   const { checks, alerts, maintenance } = getQueues();
   const pool = getProxyPool();
   log(`worker starting: concurrency=${config.CONCURRENCY}, proxies=${pool.size || "none (direct)"}, tz=${config.TZ}`);
+
+  // On Railway the platform healthcheck hits $PORT; answer 200 while Redis responds.
+  if (process.env.PORT) {
+    createServer(async (_req, res) => {
+      const ok = await sharedRedis().ping().then(() => true, () => false);
+      res.writeHead(ok ? 200 : 503, { "content-type": "application/json" }).end(JSON.stringify({ ok, role: "worker" }));
+    }).listen(Number(process.env.PORT), () => log(`health endpoint on :${process.env.PORT}`));
+  }
 
   // A previous process may have paused the queue (all proxies down); proxy state is fresh now.
   await checks.resume();
