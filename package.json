@@ -22,7 +22,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "seed:demo": "tsx src/cli/seed-demo.ts"
+    "seed:demo": "tsx src/cli/seed-demo.ts",
+    "setup": "node -e \"require('fs').existsSync('.env')||require('fs').copyFileSync('.env.example','.env')\" && docker compose up -d --wait && prisma migrate deploy",
+    "dev:all": "concurrently -k -n web,worker -c blue,magenta \"next dev\" \"tsx watch src/worker/index.ts\""
   },
   "keywords": [],
   "author": "",
@@ -33,11 +35,10 @@
     "@types/node": "^22.20.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "concurrently": "^10.0.7",
     "postcss": "^8.5.32",
-    "prisma": "^7.10.1",
     "shadcn": "^4.23.0",
     "tailwindcss": "^4.3.5",
-    "tsx": "^4.23.15",
     "tw-animate-css": "^1.4.0",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
@@ -56,8 +57,10 @@
     "ioredis": "^6.0.0",
     "lucide-react": "^1.71.0",
     "next": "^16.4.6",
+    "prisma": "^7.10.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "tsx": "^4.23.15",
     "undici": "^8.12.4",
     "zod": "^4.6.7"
   },
@@ -67,6 +70,6 @@
   },
   "private": true,
   "engines": {
-    "node": ">=22"
+    "node": ">=22.19"
   }
 }
